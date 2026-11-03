@@ -1,0 +1,85 @@
+
+# Implementation Task Tracker
+
+## 1. Current focus and ownership
+
+**Current focus:** T001 is implemented and awaiting Windows verification. The next task is T002.
+
+This document tracks actionable work, dependencies, state, and evidence. [Plan](PLAN.md) owns milestone deliverables/completion conditions; [PRD](PRD.md) owns product requirements and the single sample; [Architecture](ARCHITECTURE.md) and [Design](DESIGN.md) own mechanisms and surfaces. Do not copy their full specifications into task descriptions.
+
+All tasks below start as **Not started**, with no application verification evidence. Previous template claims of completed initialization or a passing local build are removed. Documentation agreement is not application development progress.
+
+## 2. Status and evidence rules
+
+| State | Meaning |
+|---|---|
+| Not started | Implementation work has not begun. |
+| In progress | Work is being implemented or an observed failure is being fixed. |
+| Awaiting verification | Implementation is present, but sufficient applicable evidence is missing. |
+| Verified complete | The task's referenced completion criteria have been checked with recorded evidence. |
+
+- Implementation alone never establishes **Verified complete**. Unavailable credentials, denied access, skipped checks, or an unexercised path remain explicit limitations.
+- Record external dependencies/blockers in notes; they are not a fifth status or permission to drop requirements. A not-started task with a known external dependency remains **Not started** until work actually begins.
+- Evidence identifies the actual command/check, observed result, affected requirement, and available artifact or limitation. Never store credentials, raw email bodies, or unredacted provider responses as evidence.
+- Record failures and skipped checks honestly. A failed verification returns the affected work to **In progress**; retain the failure record until resolved.
+- Build evidence does not prove working APIs, accurate model analysis, full account coverage, or broad sample coverage. Follow [PRD verification limits](PRD.md#verification-limits).
+- Do not insert team assignments, handoff steps, or tasks directing a separate human API-debug process. Available actual results may still be recorded without prescribing that workflow.
+
+## 3. Task list
+
+Dependencies are implementation prerequisites, not claims that earlier work is verified. M1-M3 contain functional development; M4 contains local readiness checks and packaging/configuration documentation. Each task references its owning completion criteria rather than repeating them.
+
+### M1: Windows App foundation
+
+Completion criteria: [PLAN M1](PLAN.md#m1-windows-app-foundation).
+
+| ID | Task | Dependencies | Criteria reference | Status | Evidence |
+|---|---|---|---|---|---|
+| T001 | Initialize Electron/TypeScript, single-instance operation, tray lifecycle, close-to-tray, explicit exit, and no login autostart. | None | PLAN M1; [launch behavior](DESIGN.md#5-launch-and-tray-behavior) | Awaiting verification | 2026-11-03, macOS dev machine (not Windows), Electron 44.9.2: `npm run build` and `npm run typecheck` passed. Launched with `electron .`: unconfigured start opened Settings; a second `electron .` exited in ~0.4 s and showed the main window in the first instance; main window rendered the red "Setup is incomplete" warning; bridge `requestSync`/`openCalendar` returned `configuration-required`/`not-configured`; renderer has no `require`/`process`; `BrowserWindow.close()` hid the window and the process kept running; `app.quit()` (the tray Exit handler) ended the process; `openAtLogin` was false. **Not exercised:** Windows tray icon/menu clicks, Windows build, packaging. Configuration is hard-coded as missing until T002/T003. |
+| T002 | Implement SQLite processing/configuration records and Windows-protected secret storage. | T001 | PLAN M1; [local records](ARCHITECTURE.md#5-local-records-and-configuration) | Not started | Not run |
+| T003 | Implement main/settings surfaces, account-connection controls, initial configuration, and persistence through the narrow bridge. | T001, T002 | PLAN M1; [surface inventory](DESIGN.md#2-complete-surface-inventory) | Not started | Not run |
+
+### M2: Email ingestion and analysis
+
+Completion criteria: [PLAN M2](PLAN.md#m2-email-ingestion-and-analysis).
+
+| ID | Task | Dependencies | Criteria reference | Status | Evidence |
+|---|---|---|---|---|---|
+| T004 | Implement the Gmail read-only connector and normalized adapter contract. | T002 | PLAN M2; [provider access](ARCHITECTURE.md#provider-access) | Not started | Not run |
+| T005 | Implement the Comcast-compatible IMAP connector. | T002 | PLAN M2; provider access | Not started | Not run |
+| T006 | Implement organizational/additional account support using actual provider and permitted-authentication information. | T002; external account/provider details | PLAN M2; [F01](PRD.md#f01-account-coverage) | Not started | Not run |
+| T007 | Implement selected-history scans, normalized ingestion, incremental cursors, durable queued work, and restart recovery. | T002, T004; integrate T005/T006 before full-coverage completion | PLAN M2; [incremental protocol](ARCHITECTURE.md#incremental-protocol-and-durable-progress) | Not started | Not run |
+| T008 | Implement local redaction, alias/role context, and the fail-closed upload boundary. | T002 | PLAN M2; [input boundary](ARCHITECTURE.md#input-boundary) | Not started | Not run |
+| T009 | Implement configurable OpenRouter access, the versioned extraction/classification prompt, and output validation. | T003, T008 | PLAN M2; [prompt/output contracts](ARCHITECTURE.md#prompt-contract) | Not started | Not run |
+| T010 | Implement the fixed local category-to-priority mapping, explicit urgency handling, and deterministic tie-breaking. | T009 | PLAN M2; [F04](PRD.md#f04-fixed-priority-ordering) | Not started | Not run |
+
+### M3: Dedicated calendar workflow
+
+Completion criteria: [PLAN M3](PLAN.md#m3-dedicated-calendar-workflow).
+
+| ID | Task | Dependencies | Criteria reference | Status | Evidence |
+|---|---|---|---|---|---|
+| T011 | Implement Google authorization, dedicated-calendar creation/reuse, and opening its browser view. | T002, T003 | PLAN M3; [F05](PRD.md#f05-dedicated-calendar-and-confirmed-appointments) | Not started | Not run |
+| T012 | Implement confirmed appointment writes, source/event associations, reconciliation, and duplicate prevention. | T007, T010, T011 | PLAN M3; [calendar application](ARCHITECTURE.md#8-calendar-application-and-recovery) | Not started | Not run |
+| T013 | Implement non-blocking follow-ups, locally generated redaction-failure reminders, and carry-forward without duplicates. | T008, T012 | PLAN M3; [F06](PRD.md#f06-follow-up-and-rescheduling) | Not started | Not run |
+| T014 | Implement unconfirmed/confirmed rescheduling and reliable original-event/reminder updates. | T012, T013 | PLAN M3; F06 | Not started | Not run |
+| T015 | Implement conflict/priority marking and protection of manual calendar changes during replay. | T010, T012 | PLAN M3; [F07](PRD.md#f07-conflicts-and-duplicate-prevention) | Not started | Not run |
+| T016 | Wire all configured adapters, processing stages, automatic/manual sync, retries, partial failures, and main-window errors into one coordinator. | T003-T007, T009, T014, T015 | PLAN M3; [components/flow](ARCHITECTURE.md#3-components-and-flow) | Not started | Not run |
+
+### M4: Readiness and delivery
+
+Completion criteria: [PLAN M4](PLAN.md#m4-readiness-checks-packaging-and-configuration-documentation).
+
+| ID | Task | Dependencies | Criteria reference | Status | Evidence |
+|---|---|---|---|---|---|
+| T017 | Run applicable local build, lint, and type checks; fix observed blocking failures and record results/limitations. | T001-T016 | PLAN M4; [verification limits](PRD.md#verification-limits) | Not started | Not run |
+| T018 | Package the Windows App and document actual installation, API/configuration locations, operation, and known limitations. | T017 | PLAN M4; [configuration location](ARCHITECTURE.md#configuration-location-contract) | Not started | Not run |
+
+The single acceptance case is specified in [V01](PRD.md#v01-single-supplied-rescheduling-sample), not recreated as a dataset or a task assigning manual API/debug work. Record its observed result if actually exercised; otherwise keep that coverage unverified.
+
+## 4. External dependencies and verification gaps
+
+- Consult [PRD outstanding facts](PRD.md#8-outstanding-external-facts) for missing account/provider information, permissions, Windows compatibility, model selection, and contact mappings.
+- T006/T007/T016 cannot establish full account coverage while required accounts or actual provider support remain unresolved.
+- A local macOS build and UI launch were run for T001. No Windows build, package, sample execution, model call, mailbox connection, or calendar write has been verified.
+- T001 is **Awaiting verification** (see its evidence). No task is **Verified complete**. Update states only when the corresponding work/evidence exists.
