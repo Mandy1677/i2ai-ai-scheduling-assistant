@@ -31,12 +31,20 @@ function start(): void {
 
   const syncNow = (): void => {
     const result = coordinator.requestSync();
-    if (result.status === 'configuration-required') windows.show('main');
+    // Actions that need missing configuration lead to Settings (DESIGN.md section 6).
+    if (result.status === 'configuration-required') windows.show('settings');
   };
 
   registerIpc({
-    requestSync: () => coordinator.requestSync(),
-    openCalendar: async () => ({ status: 'not-configured' }),
+    requestSync: () => {
+      const result = coordinator.requestSync();
+      if (result.status === 'configuration-required') windows.show('settings');
+      return result;
+    },
+    openCalendar: async () => {
+      windows.show('settings');
+      return { status: 'not-configured' };
+    },
     openSettings: () => windows.show('settings'),
     readFailures: currentFailures,
   });
