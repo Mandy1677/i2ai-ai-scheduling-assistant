@@ -2,12 +2,107 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'">
   <title>Settings</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <h1>Settings</h1>
-  <p>Email accounts, Google Calendar, OpenRouter, and the initial email range cannot be configured in this build yet.</p>
+
+  <section aria-labelledby="accounts-heading">
+    <h2 id="accounts-heading">Email accounts</h2>
+    <p class="hint">Connecting to email providers is not available in this build yet. Added accounts are saved and show as Not connected.</p>
+    <ul id="account-list" class="account-list"></ul>
+    <p id="err-account" class="field-error" hidden></p>
+
+    <form id="add-account-form" class="subform" novalidate>
+      <h3>Add an account</h3>
+      <div class="field">
+        <label for="account-address">Email address</label>
+        <input id="account-address" type="email" autocomplete="off" aria-describedby="err-address">
+        <p id="err-address" class="field-error" hidden></p>
+      </div>
+      <div class="field">
+        <label for="account-provider">Account type</label>
+        <select id="account-provider" aria-describedby="err-provider">
+          <option value="gmail">Gmail (Google sign-in)</option>
+          <option value="microsoft">Microsoft / Outlook (Microsoft sign-in)</option>
+          <option value="imap">Other (IMAP)</option>
+        </select>
+        <p id="err-provider" class="field-error" hidden></p>
+      </div>
+      <div id="imap-fields" hidden>
+        <div class="field">
+          <label for="imap-host">IMAP server</label>
+          <input id="imap-host" type="text" autocomplete="off" placeholder="imap.example.com" aria-describedby="err-imapHost">
+          <p id="err-imapHost" class="field-error" hidden></p>
+        </div>
+        <div class="field">
+          <label for="imap-port">Port</label>
+          <input id="imap-port" type="number" min="1" max="65535" value="993" aria-describedby="err-imapPort">
+          <p id="err-imapPort" class="field-error" hidden></p>
+        </div>
+        <div class="field">
+          <label for="imap-username">User name</label>
+          <input id="imap-username" type="text" autocomplete="off" aria-describedby="err-imapUsername">
+          <p id="err-imapUsername" class="field-error" hidden></p>
+        </div>
+        <div class="field">
+          <label for="imap-password">Password</label>
+          <input id="imap-password" type="password" autocomplete="off" aria-describedby="err-imapPassword">
+          <p id="err-imapPassword" class="field-error" hidden></p>
+        </div>
+      </div>
+      <button id="add-account" type="submit">Add account</button>
+    </form>
+  </section>
+
+  <section aria-labelledby="calendar-heading">
+    <h2 id="calendar-heading">Dedicated Google Calendar</h2>
+    <p id="calendar-status" class="status"></p>
+    <button id="connect-calendar" type="button" disabled>Connect Google Calendar</button>
+    <p class="hint">Connecting Google Calendar is not available in this build yet.</p>
+  </section>
+
+  <form id="settings-form" novalidate>
+    <section aria-labelledby="openrouter-heading">
+      <h2 id="openrouter-heading">OpenRouter</h2>
+      <div class="field">
+        <label for="openrouter-key">API key</label>
+        <input id="openrouter-key" type="password" autocomplete="off" aria-describedby="key-status err-openRouterApiKey">
+        <p id="key-status" class="hint"></p>
+        <p id="err-openRouterApiKey" class="field-error" hidden></p>
+      </div>
+      <div class="field">
+        <label for="openrouter-model">Model</label>
+        <input id="openrouter-model" type="text" autocomplete="off" placeholder="vendor/model-name:free" aria-describedby="err-openRouterModel">
+        <p id="err-openRouterModel" class="field-error" hidden></p>
+      </div>
+    </section>
+
+    <section aria-labelledby="range-heading">
+      <h2 id="range-heading">Initial email range</h2>
+      <p class="hint">How much past email to read on the first scan. Later checks only read new mail.</p>
+      <fieldset aria-describedby="err-historyRange">
+        <legend class="visually-hidden">Initial email range</legend>
+        <label class="choice"><input type="radio" name="range" value="last-30-days"> Last 30 days</label>
+        <label class="choice"><input type="radio" name="range" value="from-date"> From a chosen date</label>
+        <label class="choice"><input type="radio" name="range" value="all-history"> All history</label>
+      </fieldset>
+      <p id="err-historyRange" class="field-error" hidden></p>
+      <div id="from-date-field" class="field" hidden>
+        <label for="from-date">Start date</label>
+        <input id="from-date" type="date" aria-describedby="err-fromDate">
+        <p id="err-fromDate" class="field-error" hidden></p>
+      </div>
+    </section>
+
+    <div class="form-actions">
+      <button id="save-settings" class="primary" type="submit">Save settings</button>
+      <span id="save-status" class="status" role="status"></span>
+    </div>
+  </form>
+
+  <script src="settings-window.js"></script>
 </body>
 </html>
