@@ -15,11 +15,14 @@ export interface IpcHandlers {
   readFailures(): AppFailure[];
 }
 
-const uiOrigin = pathToFileURL(UI_DIR).href;
+// Windows paths are case-insensitive, and drive-letter case can differ
+// between Node and Chromium file URLs.
+const normalize = (url: string): string => (process.platform === 'win32' ? url.toLowerCase() : url);
+const uiOrigin = normalize(pathToFileURL(UI_DIR).href);
 
 /** Only the App's own packaged pages may call the bridge. */
 function assertTrustedSender(event: IpcMainInvokeEvent): void {
-  const url = event.senderFrame?.url ?? '';
+  const url = normalize(event.senderFrame?.url ?? '');
   if (!url.startsWith(uiOrigin + '/')) {
     throw new Error('Rejected IPC call from an untrusted frame');
   }
