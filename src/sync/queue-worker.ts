@@ -23,6 +23,8 @@ export interface WorkerResult {
   retrying: number;
   failed: number;
   sourceMissing: number;
+  /** True when the batch stopped early because a service asked the App to slow down. */
+  rateLimited?: boolean;
 }
 
 export interface WorkerOptions {
@@ -46,6 +48,10 @@ export function fingerprint(message: NormalizedMessage): string {
 /** A safe, content-free error code for logs and the database. */
 export function errorCode(error: unknown): string {
   if (error instanceof HttpError) return error.code ? `http_${error.status}_${error.code}` : `http_${error.status}`;
+  // Named error classes give a useful code; messages are never recorded.
+  if (error instanceof Error && error.name !== 'Error' && /^[A-Za-z]+Error$/.test(error.name)) {
+    return error.name.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();
+  }
   return 'processing_failed';
 }
 
@@ -85,6 +91,11 @@ export async function processQueue(options: WorkerOptions): Promise<WorkerResult
       queue.recordFailure(item.id, errorCode(error), retryAt, now.toISOString());
       if (retryAt) result.retrying++;
       else result.failed++;
+      // A rate limit applies to every remaining item; stop instead of spending their attempts.
+      if (error instanceof HttpError && error.status === 429) {
+        result.rateLimited = true;
+        break;
+      }
     }
   }
   return result;

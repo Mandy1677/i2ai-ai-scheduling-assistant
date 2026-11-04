@@ -46,7 +46,11 @@ export async function fetchJson<T>(
     if (!RETRYABLE.has(response.status) || attempt >= attempts) {
       throw new HttpError(response.status, url, await errorCode(response));
     }
+    // Honor the server's Retry-After (seconds) when given, within reason.
+    const retryAfter = Number(response.headers.get('retry-after'));
     await response.body?.cancel();
-    await sleep(baseDelayMs * 2 ** (attempt - 1));
+    await sleep(
+      Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(retryAfter, 120) * 1000 : baseDelayMs * 2 ** (attempt - 1),
+    );
   }
 }

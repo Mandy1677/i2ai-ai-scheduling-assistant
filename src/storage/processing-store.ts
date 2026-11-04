@@ -9,6 +9,7 @@ import type { MessageRef } from '../ingestion/mail-adapter';
 export const Stage = {
   queued: 'queued',
   awaitingAnalysis: 'awaiting-analysis',
+  analyzed: 'analyzed',
   failed: 'failed',
   sourceMissing: 'source-missing',
 } as const;

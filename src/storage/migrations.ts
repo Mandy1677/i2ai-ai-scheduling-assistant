@@ -85,6 +85,20 @@ const MIGRATIONS: string[] = [
   ALTER TABLE processing_items ADD COLUMN created_at TEXT;
   CREATE INDEX processing_items_due ON processing_items (stage, next_attempt_at);
   `,
+  // T009/T010: validated analysis results and local ordering fields.
+  `
+  ALTER TABLE scheduling_items ADD COLUMN existing_meeting_ref TEXT;
+  ALTER TABLE scheduling_items ADD COLUMN evidence_json TEXT;
+  ALTER TABLE scheduling_items ADD COLUMN review_notes_json TEXT;
+  ALTER TABLE scheduling_items ADD COLUMN prompt_version TEXT;
+  ALTER TABLE scheduling_items ADD COLUMN analysis_model TEXT;
+  ALTER TABLE scheduling_items ADD COLUMN redaction_failed INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE scheduling_items ADD COLUMN received_at TEXT;
+  ALTER TABLE scheduling_items ADD COLUMN priority_rank INTEGER;
+  ALTER TABLE scheduling_items ADD COLUMN urgent INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE scheduling_items ADD COLUMN deadline TEXT;
+  ALTER TABLE scheduling_items ADD COLUMN created_at TEXT;
+  `,
 ];
 
 export function migrate(db: DatabaseSync): void {
