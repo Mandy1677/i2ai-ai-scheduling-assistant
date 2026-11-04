@@ -23,3 +23,16 @@ export function openDatabase(filePath: string): DatabaseSync {
 export function nowIso(): string {
   return new Date().toISOString();
 }
+
+/** Runs `fn` in one SQLite transaction, rolling back if it throws. */
+export function transaction<T>(db: DatabaseSync, fn: () => T): T {
+  db.exec('BEGIN');
+  try {
+    const result = fn();
+    db.exec('COMMIT');
+    return result;
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
+  }
+}
