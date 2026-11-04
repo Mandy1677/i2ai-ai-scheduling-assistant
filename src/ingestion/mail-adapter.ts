@@ -47,4 +47,6 @@ export interface MailAdapter {
   listInitial(range: HistoryRange, pageToken: string | null): Promise<InitialScanPage>;
   listChanges(cursor: string): Promise<ChangesResult>;
   fetchMessage(ref: MessageRef): Promise<NormalizedMessage>;
+  /** Other messages in the same conversation, oldest first, when the provider supports threads. */
+  fetchThread?(threadId: string): Promise<NormalizedMessage[]>;
 }
