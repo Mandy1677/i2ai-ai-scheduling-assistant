@@ -3,6 +3,7 @@ import { describe, test } from 'node:test';
 import { AccountStore } from '../storage/account-store';
 import { openDatabase } from '../storage/database';
 import { SecretStore } from '../storage/secret-store';
+import { missingConfiguration } from '../storage/config-status';
 import { SettingKey, SettingsStore } from '../storage/settings-store';
 import { fakeEncryptor } from '../storage/test-helpers';
 import { isValidPastDate, SettingsService, validateSettingsInput } from './settings-service';
@@ -78,10 +79,12 @@ describe('settings service', () => {
     assert.ok(!stores.secrets.has(firstId), 'old key is deleted');
   });
 
-  test('requires a key on first save', () => {
-    const { service } = makeService();
+  test('saves other settings without a key and reports the key as missing', () => {
+    const { stores, service } = makeService();
     const result = service.save({ ...validInput, openRouterApiKey: '' });
-    assert.equal(result.status, 'invalid');
+    assert.equal(result.status, 'saved');
+    if (result.status === 'saved') assert.equal(result.settings.openRouter.keyConfigured, false);
+    assert.ok(missingConfiguration(stores).includes('an OpenRouter API key'));
   });
 
   test('does not save anything when secure storage is unavailable', () => {

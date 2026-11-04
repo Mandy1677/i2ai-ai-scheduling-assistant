@@ -3,7 +3,7 @@
 
 ## 1. Current focus and ownership
 
-**Current focus:** T001–T003 are implemented and awaiting Windows verification. The next tasks are T004 (Gmail), T005 (IMAP), T008 (redaction), and T011 (Google Calendar).
+**Current focus:** T001–T004 are implemented and awaiting Windows verification. The next tasks are T005 (IMAP), T007 (sync progress), T008 (redaction), and T011 (Google Calendar).
 
 This document tracks actionable work, dependencies, state, and evidence. [Plan](PLAN.md) owns milestone deliverables/completion conditions; [PRD](PRD.md) owns product requirements and the single sample; [Architecture](ARCHITECTURE.md) and [Design](DESIGN.md) own mechanisms and surfaces. Do not copy their full specifications into task descriptions.
 
@@ -45,7 +45,7 @@ Completion criteria: [PLAN M2](PLAN.md#m2-email-ingestion-and-analysis).
 
 | ID | Task | Dependencies | Criteria reference | Status | Evidence |
 |---|---|---|---|---|---|
-| T004 | Implement the Gmail read-only connector and normalized adapter contract. | T002 | PLAN M2; [provider access](ARCHITECTURE.md#provider-access) | Not started | Not run |
+| T004 | Implement the Gmail read-only connector and normalized adapter contract. | T002 | PLAN M2; [provider access](ARCHITECTURE.md#provider-access) | Awaiting verification | 2026-11-04, macOS dev machine (not Windows): `npm test` ran 39 tests, 39 passed, including the loopback OAuth flow with PKCE against a real local receiver (fake Google endpoints), denied consent, timeout, wrong-account and missing-scope rejection with token revocation, retry/backoff, Gmail paging, history de-duplication, expired-cursor reporting, and message parsing. `npm run typecheck` passed. **Live:** a team test Gmail account was connected through Settings → Connect and Google sign-in (Testing mode); the App then confirmed the signed-in profile matched the account, read a numeric history cursor, listed 2 INBOX messages for both last-30-days and all-history, got an `ok` empty change list from the current cursor, and fetched one full message (sender, subject, thread, receipt time, 876 body characters). Only counts and lengths were inspected; no content was recorded. All requests are GET under `gmail.readonly`. **Not exercised:** Windows, refresh-token expiry after 7 days in Testing mode, large mailboxes, non-UTF-8 bodies. |
 | T005 | Implement the Comcast-compatible IMAP connector. | T002 | PLAN M2; provider access | Not started | Not run |
 | T006 | Implement organizational/additional account support using actual provider and permitted-authentication information. | T002; external account/provider details | PLAN M2; [F01](PRD.md#f01-account-coverage) | Not started | Not run |
 | T007 | Implement selected-history scans, normalized ingestion, incremental cursors, durable queued work, and restart recovery. | T002, T004; integrate T005/T006 before full-coverage completion | PLAN M2; [incremental protocol](ARCHITECTURE.md#incremental-protocol-and-durable-progress) | Not started | Not run |
@@ -81,5 +81,5 @@ The single acceptance case is specified in [V01](PRD.md#v01-single-supplied-resc
 
 - Consult [PRD outstanding facts](PRD.md#8-outstanding-external-facts) for missing account/provider information, permissions, Windows compatibility, model selection, and contact mappings.
 - T006/T007/T016 cannot establish full account coverage while required accounts or actual provider support remain unresolved.
-- Local macOS builds, tests, and UI launches were run for T001–T003. No Windows build, package, sample execution, model call, mailbox connection, or calendar write has been verified.
-- T001–T003 are **Awaiting verification** (see their evidence). No task is **Verified complete**. Update states only when the corresponding work/evidence exists.
+- Local macOS builds, tests, and UI launches were run for T001–T004, including one live Gmail connection to a test account. No Windows build, package, sample execution, model call, or calendar write has been verified.
+- T001–T004 are **Awaiting verification** (see their evidence). No task is **Verified complete**. Update states only when the corresponding work/evidence exists.

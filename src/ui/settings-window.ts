@@ -87,10 +87,34 @@
           const result = await window.assistant.removeAccount(account.id);
           handleResult(result, ['account']);
         });
-        item.append(details, remove);
+        const actions = document.createElement('div');
+        actions.className = 'account-actions';
+        if (account.provider === 'gmail') actions.append(connectButton(account));
+        actions.append(remove);
+        item.append(details, actions);
         return item;
       }),
     );
+  }
+
+  function connectButton(account: Settings['accounts'][number]): HTMLButtonElement {
+    const button = document.createElement('button');
+    button.type = 'button';
+    const label = account.connectionState === 'not-connected' ? 'Connect' : 'Reconnect';
+    button.textContent = label;
+    button.setAttribute('aria-label', `${label} ${account.address}`);
+    button.addEventListener('click', async () => {
+      button.disabled = true;
+      button.textContent = 'Waiting for Google sign-in…';
+      try {
+        const result = await window.assistant.connectAccount(account.id);
+        if (result.status !== 'busy') render(result.settings);
+      } finally {
+        button.disabled = false;
+        button.textContent = label;
+      }
+    });
+    return button;
   }
 
   function render(settings: Settings): void {

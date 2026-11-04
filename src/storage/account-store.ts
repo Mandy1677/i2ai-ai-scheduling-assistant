@@ -40,6 +40,31 @@ export class AccountStore {
     });
   }
 
+  get(id: string): (AccountSummary & { folderScope: string; credentialSecretId: string | null }) | null {
+    const row = this.db
+      .prepare(
+        'SELECT id, address, provider, config_json, folder_scope, credential_secret_id, connection_state FROM accounts WHERE id = ?',
+      )
+      .get(id) as (AccountRow & { folder_scope: string }) | undefined;
+    if (!row) return null;
+    const config = JSON.parse(row.config_json) as { imap?: Omit<ImapSettings, 'password'> };
+    return {
+      id: row.id,
+      address: row.address,
+      provider: row.provider,
+      connectionState: row.connection_state,
+      imap: config.imap ?? null,
+      folderScope: row.folder_scope,
+      credentialSecretId: row.credential_secret_id,
+    };
+  }
+
+  setConnection(id: string, state: ConnectionState, credentialSecretId: string | null): void {
+    this.db
+      .prepare('UPDATE accounts SET connection_state = ?, credential_secret_id = ? WHERE id = ?')
+      .run(state, credentialSecretId, id);
+  }
+
   exists(address: string): boolean {
     return this.db.prepare('SELECT 1 FROM accounts WHERE address = ?').get(address) !== undefined;
   }
