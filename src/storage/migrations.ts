@@ -99,6 +99,13 @@ const MIGRATIONS: string[] = [
   ALTER TABLE scheduling_items ADD COLUMN deadline TEXT;
   ALTER TABLE scheduling_items ADD COLUMN created_at TEXT;
   `,
+  // T011-T013: local alias table for calendar titles, and calendar entry state.
+  `
+  ALTER TABLE scheduling_items ADD COLUMN alias_json TEXT;
+  ALTER TABLE calendar_associations ADD COLUMN state TEXT NOT NULL DEFAULT 'active';
+  ALTER TABLE calendar_associations ADD COLUMN event_date TEXT;
+  CREATE INDEX calendar_associations_event ON calendar_associations (calendar_id, event_id);
+  `,
 ];
 
 export function migrate(db: DatabaseSync): void {

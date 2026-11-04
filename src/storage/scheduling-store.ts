@@ -20,6 +20,11 @@ export interface SchedulingItem extends RankableItem {
   promptVersion: string | null;
   model: string | null;
   confirmationState: 'confirmed' | 'unconfirmed';
+  accountId: string;
+  sourceMessageId: string;
+  threadId: string | null;
+  /** Local-only alias table (placeholder -> original) for readable calendar titles. */
+  aliases: Record<string, string>;
 }
 
 export interface SaveMeta {
@@ -29,6 +34,8 @@ export interface SaveMeta {
   promptVersion: string | null;
   model: string | null;
   redactionFailed: boolean;
+  /** Local-only alias table from redaction; never uploaded. */
+  aliases?: Record<string, string>;
   now: string;
 }
 
@@ -50,7 +57,11 @@ interface Row {
   priority_rank: number;
   urgent: number;
   deadline: string | null;
+  alias_json: string | null;
   source_key: string;
+  account_id: string;
+  source_message_id: string;
+  source_thread_id: string | null;
 }
 
 const CONFIRMED: RequestType[] = ['confirmed-appointment', 'confirmed-reschedule'];
@@ -82,6 +93,7 @@ export class SchedulingStore {
         rankOf(analysis.category),
         analysis.urgency.explicit ? 1 : 0,
         analysis.urgency.deadline,
+        JSON.stringify(meta.aliases ?? {}),
         meta.now,
       ];
       if (existing) {
@@ -90,7 +102,7 @@ export class SchedulingStore {
             `UPDATE scheduling_items SET request_type = ?, category = ?, summary = ?, timing_json = ?, urgency_json = ?,
                confirmation_state = ?, existing_meeting_ref = ?, evidence_json = ?, review_notes_json = ?,
                prompt_version = ?, analysis_model = ?, redaction_failed = ?, received_at = ?, priority_rank = ?,
-               urgent = ?, deadline = ?, updated_at = ? WHERE id = ?`,
+               urgent = ?, deadline = ?, alias_json = ?, updated_at = ? WHERE id = ?`,
           )
           .run(...values, id);
       } else {
@@ -98,8 +110,8 @@ export class SchedulingStore {
           .prepare(
             `INSERT INTO scheduling_items (request_type, category, summary, timing_json, urgency_json,
                confirmation_state, existing_meeting_ref, evidence_json, review_notes_json, prompt_version,
-               analysis_model, redaction_failed, received_at, priority_rank, urgent, deadline, updated_at,
-               created_at, id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+               analysis_model, redaction_failed, received_at, priority_rank, urgent, deadline, alias_json,
+               updated_at, created_at, id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           )
           .run(...values, meta.now, id);
         this.db
@@ -114,7 +126,8 @@ export class SchedulingStore {
   listByPriority(): SchedulingItem[] {
     const rows = this.db
       .prepare(
-        `SELECT s.*, p.account_id || ':' || p.source_message_id AS source_key
+        `SELECT s.*, p.account_id || ':' || p.source_message_id AS source_key,
+           p.account_id, p.source_message_id, p.source_thread_id
          FROM scheduling_items s
          JOIN scheduling_item_sources l ON l.scheduling_item_id = s.id
          JOIN processing_items p ON p.id = l.processing_item_id`,
@@ -143,5 +156,9 @@ function toItem(row: Row): SchedulingItem {
     deadline: row.deadline,
     receivedAt: row.received_at,
     sourceKey: row.source_key,
+    accountId: row.account_id,
+    sourceMessageId: row.source_message_id,
+    threadId: row.source_thread_id,
+    aliases: row.alias_json ? (JSON.parse(row.alias_json) as Record<string, string>) : {},
   };
 }
