@@ -29,4 +29,5 @@ export const SettingKey = {
   openRouterModel: 'openRouter.model',
   openRouterKeySecretId: 'openRouter.keySecretId',
   calendar: 'calendar.connection',
+  calendarSecretId: 'calendar.secretId',
 } as const;

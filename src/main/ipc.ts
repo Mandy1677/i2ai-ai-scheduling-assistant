@@ -22,6 +22,7 @@ export interface IpcHandlers {
   addAccount(input: unknown): SaveResult;
   removeAccount(id: unknown): Promise<SaveResult>;
   connectAccount(id: unknown): Promise<ConnectResult>;
+  connectCalendar(): Promise<ConnectResult>;
 }
 
 // Windows paths are case-insensitive, and drive-letter case can differ
@@ -73,5 +74,9 @@ export function registerIpc(handlers: IpcHandlers): void {
   ipcMain.handle(IpcChannel.connectAccount, (event, id: unknown) => {
     assertTrustedSender(event);
     return handlers.connectAccount(id);
+  });
+  ipcMain.handle(IpcChannel.connectCalendar, (event) => {
+    assertTrustedSender(event);
+    return handlers.connectCalendar();
   });
 }
