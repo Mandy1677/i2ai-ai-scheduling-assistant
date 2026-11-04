@@ -75,6 +75,12 @@ export interface AddAccountInput {
 
 export type FieldErrors = Record<string, string>;
 
+/** A failed connection is reported on the main window, not in Settings. */
+export type ConnectResult =
+  | { status: 'connected'; settings: PublicSettings }
+  | { status: 'failed'; settings: PublicSettings }
+  | { status: 'busy' };
+
 export type SaveResult =
   | { status: 'saved'; settings: PublicSettings }
   | { status: 'invalid'; fieldErrors: FieldErrors };
@@ -89,6 +95,7 @@ export interface AssistantBridge {
   saveSettings(input: SettingsInput): Promise<SaveResult>;
   addAccount(input: AddAccountInput): Promise<SaveResult>;
   removeAccount(id: string): Promise<SaveResult>;
+  connectAccount(id: string): Promise<ConnectResult>;
 }
 
 export const IpcChannel = {
@@ -100,4 +107,5 @@ export const IpcChannel = {
   saveSettings: 'assistant:save-settings',
   addAccount: 'assistant:add-account',
   removeAccount: 'assistant:remove-account',
+  connectAccount: 'assistant:connect-account',
 } as const;

@@ -66,6 +66,7 @@ fieldset { border: 0; margin: 0 0 8px; padding: 0; display: flex; flex-direction
 .account { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
 .account div { display: flex; flex-direction: column; }
 .account:last-child { border-bottom: 0; }
+.account-actions { display: flex; gap: 8px; flex-shrink: 0; }
 .subform { border-top: 1px solid var(--border); padding-top: 12px; }
 .form-actions { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }

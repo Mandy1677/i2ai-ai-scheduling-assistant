@@ -3,6 +3,7 @@ import { pathToFileURL } from 'node:url';
 import {
   IpcChannel,
   type AppFailure,
+  type ConnectResult,
   type OpenCalendarResult,
   type PublicSettings,
   type SaveResult,
@@ -19,7 +20,8 @@ export interface IpcHandlers {
   // Inputs arrive untrusted from the renderer; handlers validate them.
   saveSettings(input: unknown): SaveResult;
   addAccount(input: unknown): SaveResult;
-  removeAccount(id: unknown): SaveResult;
+  removeAccount(id: unknown): Promise<SaveResult>;
+  connectAccount(id: unknown): Promise<ConnectResult>;
 }
 
 // Windows paths are case-insensitive, and drive-letter case can differ
@@ -67,5 +69,9 @@ export function registerIpc(handlers: IpcHandlers): void {
   ipcMain.handle(IpcChannel.removeAccount, (event, id: unknown) => {
     assertTrustedSender(event);
     return handlers.removeAccount(id);
+  });
+  ipcMain.handle(IpcChannel.connectAccount, (event, id: unknown) => {
+    assertTrustedSender(event);
+    return handlers.connectAccount(id);
   });
 }

@@ -1,13 +1,15 @@
-import { app, safeStorage } from 'electron';
+import { app, safeStorage, shell } from 'electron';
 import path from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
-import type { AppFailure, SaveResult } from '../shared/contracts';
+import type { AppFailure, ConnectResult, SaveResult } from '../shared/contracts';
+import { CLIENT_CONFIG_FILE } from '../ingestion/google-oauth';
 import { AccountStore } from '../storage/account-store';
 import { isConfigured, missingConfiguration, type ConfigStores } from '../storage/config-status';
 import { DATABASE_FILE, openDatabase } from '../storage/database';
 import { SecretStore, type Encryptor } from '../storage/secret-store';
 import { SettingsStore } from '../storage/settings-store';
 import { SyncCoordinator } from '../sync/coordinator';
+import { AccountConnector, failureIdFor } from './account-connector';
 import { registerIpc } from './ipc';
 import { SettingsService } from './settings-service';
 import { createTray } from './tray';
@@ -57,11 +59,26 @@ function start(): void {
   const stores = opened?.stores ?? null;
   const settingsService = stores ? new SettingsService(stores) : null;
 
+  const connector = stores
+    ? new AccountConnector({
+        stores,
+        clientConfigPath: path.join(app.getPath('userData'), CLIENT_CONFIG_FILE),
+        openBrowser: async (url) => {
+          if (!url.startsWith('https://accounts.google.com/')) throw new Error('Unexpected sign-in URL');
+          await shell.openExternal(url);
+        },
+      })
+    : null;
+  const connecting = new Set<string>();
+
+  // Operational failures from connections, keyed by failure ID, until resolved.
+  const operationalFailures = new Map<string, AppFailure>();
+
   const configured = (): boolean => stores !== null && isConfigured(stores);
 
   const currentFailures = (): AppFailure[] => {
     if (!stores) return [STORAGE_FAILURE];
-    const failures: AppFailure[] = [];
+    const failures: AppFailure[] = [...operationalFailures.values()];
     if (!stores.secrets.isAvailable()) failures.push(SECURE_STORAGE_FAILURE);
     const missing = missingConfiguration(stores);
     if (missing.length > 0) {
@@ -102,6 +119,37 @@ function start(): void {
     return result;
   };
 
+  const connectAccount = async (id: unknown): Promise<ConnectResult> => {
+    const service = requireSettings();
+    if (typeof id !== 'string' || !connector) return { status: 'failed', settings: service.read() };
+    if (connecting.has(id)) return { status: 'busy' };
+    connecting.add(id);
+    try {
+      const outcome = await connector.connect(id);
+      if (outcome.status === 'connected') {
+        operationalFailures.delete(failureIdFor(id));
+        operationalFailures.delete('google-client-config');
+        afterSave({ status: 'saved', settings: service.read() });
+        return { status: 'connected', settings: service.read() };
+      }
+      operationalFailures.set(outcome.failure.id, outcome.failure);
+      windows.refreshMain();
+      // Failures appear on the main window (DESIGN.md section 3).
+      windows.show('main');
+      return { status: 'failed', settings: service.read() };
+    } finally {
+      connecting.delete(id);
+    }
+  };
+
+  const removeAccount = async (id: unknown): Promise<SaveResult> => {
+    if (typeof id === 'string' && connector) {
+      await connector.revoke(id).catch(() => undefined);
+      operationalFailures.delete(failureIdFor(id));
+    }
+    return afterSave(requireSettings().removeAccount(id));
+  };
+
   registerIpc({
     requestSync: () => {
       const result = coordinator.requestSync();
@@ -117,7 +165,8 @@ function start(): void {
     readSettings: () => requireSettings().read(),
     saveSettings: (input) => afterSave(requireSettings().save(input)),
     addAccount: (input) => afterSave(requireSettings().addAccount(input)),
-    removeAccount: (id) => afterSave(requireSettings().removeAccount(id)),
+    removeAccount,
+    connectAccount,
   });
 
   // Keep a reference so the tray icon is not garbage-collected.
