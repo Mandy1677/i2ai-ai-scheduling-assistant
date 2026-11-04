@@ -3,7 +3,7 @@
 
 ## 1. Current focus and ownership
 
-**Current focus:** T001 is implemented and awaiting Windows verification. The next task is T002.
+**Current focus:** T001–T003 are implemented and awaiting Windows verification. The next tasks are T004 (Gmail), T005 (IMAP), T008 (redaction), and T011 (Google Calendar).
 
 This document tracks actionable work, dependencies, state, and evidence. [Plan](PLAN.md) owns milestone deliverables/completion conditions; [PRD](PRD.md) owns product requirements and the single sample; [Architecture](ARCHITECTURE.md) and [Design](DESIGN.md) own mechanisms and surfaces. Do not copy their full specifications into task descriptions.
 
@@ -36,8 +36,8 @@ Completion criteria: [PLAN M1](PLAN.md#m1-windows-app-foundation).
 | ID | Task | Dependencies | Criteria reference | Status | Evidence |
 |---|---|---|---|---|---|
 | T001 | Initialize Electron/TypeScript, single-instance operation, tray lifecycle, close-to-tray, explicit exit, and no login autostart. | None | PLAN M1; [launch behavior](DESIGN.md#5-launch-and-tray-behavior) | Awaiting verification | 2026-11-03, macOS dev machine (not Windows), Electron 44.9.2: `npm run build` and `npm run typecheck` passed. Launched with `electron .`: unconfigured start opened Settings; a second `electron .` exited in ~0.4 s and showed the main window in the first instance; main window rendered the red "Setup is incomplete" warning; bridge `requestSync`/`openCalendar` returned `configuration-required`/`not-configured`; renderer has no `require`/`process`; `BrowserWindow.close()` hid the window and the process kept running; `app.quit()` (the tray Exit handler) ended the process; `openAtLogin` was false. **Not exercised:** Windows tray icon/menu clicks, Windows build, packaging. Configuration is hard-coded as missing until T002/T003. |
-| T002 | Implement SQLite processing/configuration records and Windows-protected secret storage. | T001 | PLAN M1; [local records](ARCHITECTURE.md#5-local-records-and-configuration) | Not started | Not run |
-| T003 | Implement main/settings surfaces, account-connection controls, initial configuration, and persistence through the narrow bridge. | T001, T002 | PLAN M1; [surface inventory](DESIGN.md#2-complete-surface-inventory) | Not started | Not run |
+| T002 | Implement SQLite processing/configuration records and Windows-protected secret storage. | T001 | PLAN M1; [local records](ARCHITECTURE.md#5-local-records-and-configuration) | Awaiting verification | 2026-11-04, macOS dev machine (not Windows): `npm test` ran 17 tests, 17 passed (migrations on fresh/reopened DB, no body/content columns, duplicate source-message rejection, settings persistence across reopen, secrets stored as ciphertext and refused with nothing written when encryption is unavailable, configuration-status rules). `npm run typecheck` passed. In the running App with an isolated `--user-data-dir`, `assistant.sqlite` was created in the userData directory; a test key and IMAP password were stored as `safeStorage` ciphertext (`v10` prefix) and neither plaintext value appeared in the database files. Storage uses built-in `node:sqlite` (no added dependency). **Not exercised:** Windows DPAPI encryption, the actual Windows `%APPDATA%` path, storage-open failure path. |
+| T003 | Implement main/settings surfaces, account-connection controls, initial configuration, and persistence through the narrow bridge. | T001, T002 | PLAN M1; [surface inventory](DESIGN.md#2-complete-surface-inventory) | Awaiting verification | 2026-11-04, macOS dev machine (not Windows), driven through DevTools in the running App: saving an empty form showed adjacent errors for API key, model, and history range; a valid save showed "Saved.", cleared the key field, and showed only that a key is saved; adding an IMAP account listed it as Not connected with server details and no password; the main-window warning updated to list only the still-missing items; values reloaded correctly. Validation runs in the main process (unit-tested). **Limitations:** account and Google Calendar *connection* controls are present but connecting is not implemented (T004–T006, T011), so the App cannot reach a configured state yet. Not tested on Windows or at higher display scaling. |
 
 ### M2: Email ingestion and analysis
 
@@ -81,5 +81,5 @@ The single acceptance case is specified in [V01](PRD.md#v01-single-supplied-resc
 
 - Consult [PRD outstanding facts](PRD.md#8-outstanding-external-facts) for missing account/provider information, permissions, Windows compatibility, model selection, and contact mappings.
 - T006/T007/T016 cannot establish full account coverage while required accounts or actual provider support remain unresolved.
-- A local macOS build and UI launch were run for T001. No Windows build, package, sample execution, model call, mailbox connection, or calendar write has been verified.
-- T001 is **Awaiting verification** (see its evidence). No task is **Verified complete**. Update states only when the corresponding work/evidence exists.
+- Local macOS builds, tests, and UI launches were run for T001–T003. No Windows build, package, sample execution, model call, mailbox connection, or calendar write has been verified.
+- T001–T003 are **Awaiting verification** (see their evidence). No task is **Verified complete**. Update states only when the corresponding work/evidence exists.

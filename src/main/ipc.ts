@@ -4,6 +4,8 @@ import {
   IpcChannel,
   type AppFailure,
   type OpenCalendarResult,
+  type PublicSettings,
+  type SaveResult,
   type SyncRequestResult,
 } from '../shared/contracts';
 import { UI_DIR } from './windows';
@@ -13,6 +15,11 @@ export interface IpcHandlers {
   openCalendar(): Promise<OpenCalendarResult>;
   openSettings(): void;
   readFailures(): AppFailure[];
+  readSettings(): PublicSettings;
+  // Inputs arrive untrusted from the renderer; handlers validate them.
+  saveSettings(input: unknown): SaveResult;
+  addAccount(input: unknown): SaveResult;
+  removeAccount(id: unknown): SaveResult;
 }
 
 const uiOrigin = pathToFileURL(UI_DIR).href;
@@ -41,5 +48,21 @@ export function registerIpc(handlers: IpcHandlers): void {
   ipcMain.handle(IpcChannel.readFailures, (event) => {
     assertTrustedSender(event);
     return handlers.readFailures();
+  });
+  ipcMain.handle(IpcChannel.readSettings, (event) => {
+    assertTrustedSender(event);
+    return handlers.readSettings();
+  });
+  ipcMain.handle(IpcChannel.saveSettings, (event, input: unknown) => {
+    assertTrustedSender(event);
+    return handlers.saveSettings(input);
+  });
+  ipcMain.handle(IpcChannel.addAccount, (event, input: unknown) => {
+    assertTrustedSender(event);
+    return handlers.addAccount(input);
+  });
+  ipcMain.handle(IpcChannel.removeAccount, (event, id: unknown) => {
+    assertTrustedSender(event);
+    return handlers.removeAccount(id);
   });
 }

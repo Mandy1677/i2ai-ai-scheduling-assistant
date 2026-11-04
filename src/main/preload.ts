@@ -8,6 +8,10 @@ const bridge: AssistantBridge = {
   openCalendar: () => ipcRenderer.invoke('assistant:open-calendar'),
   openSettings: () => ipcRenderer.invoke('assistant:open-settings'),
   readFailures: () => ipcRenderer.invoke('assistant:read-failures'),
+  readSettings: () => ipcRenderer.invoke('assistant:read-settings'),
+  saveSettings: (input) => ipcRenderer.invoke('assistant:save-settings', input),
+  addAccount: (input) => ipcRenderer.invoke('assistant:add-account', input),
+  removeAccount: (id) => ipcRenderer.invoke('assistant:remove-account', id),
 };
 
 contextBridge.exposeInMainWorld('assistant', bridge);
