@@ -42,3 +42,32 @@ button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
   margin-bottom: 8px;
 }
 .warning strong::before { content: "\26A0  "; }
+h2 { font-size: 15px; margin: 0 0 8px; }
+h3 { font-size: 14px; margin: 0 0 8px; }
+section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+.hint { color: var(--text-secondary); font-size: 13px; margin: 4px 0 8px; }
+.status { color: var(--text-secondary); margin: 0 0 8px; }
+.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+label { font-weight: 600; }
+input[type="text"], input[type="email"], input[type="password"], input[type="number"], input[type="date"], select {
+  font: inherit;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+}
+input:focus-visible, select:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+fieldset { border: 0; margin: 0 0 8px; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.choice { font-weight: normal; display: flex; gap: 8px; align-items: center; }
+.field-error { color: var(--error); margin: 0; font-size: 13px; }
+.field-error::before { content: "\26A0  "; }
+.account-list { list-style: none; margin: 0 0 12px; padding: 0; }
+.account { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.account div { display: flex; flex-direction: column; }
+.account:last-child { border-bottom: 0; }
+.account-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.subform { border-top: 1px solid var(--border); padding-top: 12px; }
+.form-actions { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+[hidden] { display: none !important; }

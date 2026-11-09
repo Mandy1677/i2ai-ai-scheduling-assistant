@@ -2,5 +2,8 @@
 // renderer scripts stay plain browser scripts with no module loader.
 interface Window {
   assistant: import('../shared/contracts').AssistantBridge;
-  assistantEvents: { onFailuresChanged(listener: () => void): void };
+  assistantEvents: {
+    onFailuresChanged(listener: () => void): void;
+    onSyncStateChanged(listener: (running: boolean) => void): void;
+  };
 }

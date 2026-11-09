@@ -7,7 +7,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json && node scripts/copy-static.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "start": "npm run build && electron ."
+    "start": "npm run build && electron .",
+    "test": "npm run build && node scripts/test.mjs"
   },
   "devDependencies": {
     "@types/node": "24.19.1",
