@@ -90,6 +90,7 @@ export function createAnalysisHandler(deps: AnalysisDeps): MessageHandler {
       promptVersion: PROMPT_VERSION,
       model: completion.model,
       redactionFailed: false,
+      aliases: Object.fromEntries(redactor.aliasTable()),
     });
     return Stage.analyzed;
   };

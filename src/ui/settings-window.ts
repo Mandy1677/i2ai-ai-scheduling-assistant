@@ -17,6 +17,7 @@
   const imapPassword = byId<HTMLInputElement>('imap-password');
   const addAccountButton = byId<HTMLButtonElement>('add-account');
   const calendarStatus = byId<HTMLParagraphElement>('calendar-status');
+  const connectCalendarButton = byId<HTMLButtonElement>('connect-calendar');
   const settingsForm = byId<HTMLFormElement>('settings-form');
   const keyInput = byId<HTMLInputElement>('openrouter-key');
   const keyStatus = byId<HTMLParagraphElement>('key-status');
@@ -123,6 +124,7 @@
     calendarStatus.textContent = settings.calendar
       ? `Connected: ${settings.calendar.calendarName} (${settings.calendar.googleAccount})`
       : 'Not connected.';
+    connectCalendarButton.textContent = settings.calendar ? 'Reconnect Google Calendar' : 'Connect Google Calendar';
 
     keyInput.value = '';
     keyInput.placeholder = settings.openRouter.keyConfigured ? 'Saved key will be kept' : '';
@@ -213,6 +215,19 @@
     } finally {
       saveButton.disabled = false;
       saveButton.textContent = 'Save settings';
+    }
+  });
+
+  connectCalendarButton.addEventListener('click', async () => {
+    const label = connectCalendarButton.textContent ?? 'Connect Google Calendar';
+    connectCalendarButton.disabled = true;
+    connectCalendarButton.textContent = 'Waiting for Google sign-in…';
+    try {
+      const result = await window.assistant.connectCalendar();
+      if (result.status !== 'busy') render(result.settings);
+      else connectCalendarButton.textContent = label;
+    } finally {
+      connectCalendarButton.disabled = false;
     }
   });
 

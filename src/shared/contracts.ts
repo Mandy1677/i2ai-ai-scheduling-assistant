@@ -49,6 +49,8 @@ export interface CalendarConnection {
   googleAccount: string;
   calendarId: string;
   calendarName: string;
+  /** IANA zone of the dedicated calendar; used for all-day boundaries. */
+  timeZone: string;
 }
 
 /** Everything the Settings window may see. Never includes secret values. */
@@ -96,6 +98,7 @@ export interface AssistantBridge {
   addAccount(input: AddAccountInput): Promise<SaveResult>;
   removeAccount(id: string): Promise<SaveResult>;
   connectAccount(id: string): Promise<ConnectResult>;
+  connectCalendar(): Promise<ConnectResult>;
 }
 
 export const IpcChannel = {
@@ -108,4 +111,5 @@ export const IpcChannel = {
   addAccount: 'assistant:add-account',
   removeAccount: 'assistant:remove-account',
   connectAccount: 'assistant:connect-account',
+  connectCalendar: 'assistant:connect-calendar',
 } as const;
