@@ -75,6 +75,16 @@ const MIGRATIONS: string[] = [
     updated_at TEXT NOT NULL
   );
   `,
+  // T007: resumable initial scans, last successful sync, and retry scheduling.
+  `
+  ALTER TABLE sync_cursors ADD COLUMN scan_cursor TEXT;
+  ALTER TABLE sync_cursors ADD COLUMN scan_page_token TEXT;
+  ALTER TABLE sync_cursors ADD COLUMN scan_range_json TEXT;
+  ALTER TABLE sync_cursors ADD COLUMN last_synced_at TEXT;
+  ALTER TABLE processing_items ADD COLUMN next_attempt_at TEXT;
+  ALTER TABLE processing_items ADD COLUMN created_at TEXT;
+  CREATE INDEX processing_items_due ON processing_items (stage, next_attempt_at);
+  `,
 ];
 
 export function migrate(db: DatabaseSync): void {
