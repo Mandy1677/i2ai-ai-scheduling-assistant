@@ -17,7 +17,6 @@ The full requirements are in [docs/PRD.md](docs/PRD.md). Progress and test evide
 
 - **Works:** Gmail accounts, the dedicated Google Calendar, AI analysis, follow-ups, rescheduling, conflict marking, and automatic sync every 5 minutes.
 - **Not yet:** Comcast (IMAP) and the UPMC account, a Windows installer, and testing on Windows. So far everything has been developed and tested on macOS.
-- **Where the code is:** it's in a stack of pull requests that haven't been merged into `main` yet. Until they are, use the branch at the top of the stack (see step 1 below).
 
 ## Success metrics
 
@@ -68,11 +67,8 @@ docs/           Requirements, architecture, design, decisions, plan, task tracke
 ```bash
 git clone https://github.com/Mandy1677/i2ai-ai-scheduling-assistant.git
 cd i2ai-ai-scheduling-assistant
-git switch readme-setup-guide
 npm install
 ```
-
-Once the open pull requests are merged, use `main` instead of `readme-setup-guide`.
 
 ### 2. Run the automated tests
 
