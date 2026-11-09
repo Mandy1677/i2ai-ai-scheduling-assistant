@@ -214,6 +214,13 @@ export class GmailAdapter implements MailAdapter {
     return parseGmailMessage(this.accountId, message);
   }
 
+  async fetchThread(threadId: string): Promise<NormalizedMessage[]> {
+    const thread = await this.get<{ messages?: GmailMessage[] }>(`/threads/${encodeURIComponent(threadId)}`, {
+      format: 'full',
+    });
+    return (thread.messages ?? []).map((message) => parseGmailMessage(this.accountId, message));
+  }
+
   private ref(id: string, threadId: string | undefined): MessageRef {
     return { accountId: this.accountId, providerMessageId: id, threadId: threadId ?? null, receivedAt: null };
   }
