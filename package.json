@@ -1,0 +1,17 @@
+{
+  "name": "ai-scheduling-assistant",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Windows tray App that consolidates scheduling email into a dedicated Google Calendar.",
+  "main": "dist/main/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/copy-static.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "npm run build && electron ."
+  },
+  "devDependencies": {
+    "@types/node": "24.19.1",
+    "electron": "44.9.2",
+    "typescript": "5.9.3"
+  }
+}

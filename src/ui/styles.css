@@ -1,0 +1,44 @@
+/* Visual defaults from docs/DESIGN.md section 8. */
+:root {
+  --bg: #F6F7F9;
+  --surface: #FFFFFF;
+  --text: #111827;
+  --text-secondary: #4B5563;
+  --primary: #1D4ED8;
+  --error: #B91C1C;
+  --border: #D1D5DB;
+  --radius: 6px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  padding: 16px;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px "Segoe UI", system-ui, sans-serif;
+}
+h1 { font-size: 16px; margin: 0 0 16px; }
+p { color: var(--text-secondary); margin: 0 0 12px; }
+.actions { display: flex; flex-direction: column; gap: 8px; }
+button {
+  font: inherit;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+button.primary { background: var(--primary); border-color: var(--primary); color: #FFFFFF; }
+button:disabled { opacity: 0.6; cursor: default; }
+button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.warnings { margin-top: 16px; }
+.warning {
+  color: var(--error);
+  background: var(--surface);
+  border: 1px solid var(--error);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  margin-bottom: 8px;
+}
+.warning strong::before { content: "\26A0  "; }
