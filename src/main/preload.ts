@@ -12,6 +12,7 @@ const bridge: AssistantBridge = {
   saveSettings: (input) => ipcRenderer.invoke('assistant:save-settings', input),
   addAccount: (input) => ipcRenderer.invoke('assistant:add-account', input),
   removeAccount: (id) => ipcRenderer.invoke('assistant:remove-account', id),
+  connectAccount: (id) => ipcRenderer.invoke('assistant:connect-account', id),
 };
 
 contextBridge.exposeInMainWorld('assistant', bridge);

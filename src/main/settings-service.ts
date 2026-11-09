@@ -122,10 +122,9 @@ export class SettingsService {
   save(input: unknown): SaveResult {
     const { value, errors } = validateSettingsInput(input);
     const { settings, secrets } = this.stores;
+    // A missing key does not block saving other settings; the main window
+    // lists it as incomplete setup instead.
     const keySecretId = settings.get<string>(SettingKey.openRouterKeySecretId);
-    if (!value.openRouterApiKey && !secrets.has(keySecretId) && !errors.openRouterApiKey) {
-      errors.openRouterApiKey = 'Enter your OpenRouter API key.';
-    }
     if (Object.keys(errors).length > 0) return { status: 'invalid', fieldErrors: errors };
 
     if (value.openRouterApiKey) {
