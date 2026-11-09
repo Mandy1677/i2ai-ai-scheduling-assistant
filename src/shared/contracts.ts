@@ -99,6 +99,7 @@ export interface AssistantBridge {
   removeAccount(id: string): Promise<SaveResult>;
   connectAccount(id: string): Promise<ConnectResult>;
   connectCalendar(): Promise<ConnectResult>;
+  isSyncing(): Promise<boolean>;
 }
 
 export const IpcChannel = {
@@ -112,4 +113,5 @@ export const IpcChannel = {
   removeAccount: 'assistant:remove-account',
   connectAccount: 'assistant:connect-account',
   connectCalendar: 'assistant:connect-calendar',
+  isSyncing: 'assistant:is-syncing',
 } as const;

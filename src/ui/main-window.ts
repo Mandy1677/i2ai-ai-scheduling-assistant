@@ -24,16 +24,16 @@
     await renderFailures();
   });
 
+  // Busy for the whole run, whether it was started here, by the timer, or from the tray.
+  function setSyncing(running: boolean): void {
+    syncButton.disabled = running;
+    syncButton.textContent = running ? 'Syncing…' : 'Sync now';
+  }
+
   syncButton.addEventListener('click', async () => {
-    syncButton.disabled = true;
-    syncButton.textContent = 'Syncing…';
-    try {
-      await window.assistant.requestSync();
-    } finally {
-      syncButton.disabled = false;
-      syncButton.textContent = 'Sync now';
-      await renderFailures();
-    }
+    const result = await window.assistant.requestSync();
+    if (result.status !== 'configuration-required') setSyncing(true);
+    await renderFailures();
   });
 
   settingsButton.addEventListener('click', () => {
@@ -41,5 +41,7 @@
   });
 
   window.assistantEvents.onFailuresChanged(() => void renderFailures());
+  window.assistantEvents.onSyncStateChanged(setSyncing);
+  void window.assistant.isSyncing().then(setSyncing);
   void renderFailures();
 })();

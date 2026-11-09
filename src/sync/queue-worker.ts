@@ -34,6 +34,8 @@ export interface WorkerOptions {
   stages?: string[];
   limit?: number;
   clock?: () => Date;
+  /** Checked before each item; true stops the batch so Exit is not held up. */
+  shouldStop?: () => boolean;
 }
 
 /** Hash used to notice a changed source message; it cannot be reversed into content. */
@@ -66,6 +68,7 @@ export async function processQueue(options: WorkerOptions): Promise<WorkerResult
   const items = queue.due(options.stages ?? [Stage.queued], clock().toISOString(), options.limit ?? 50);
 
   for (const item of items) {
+    if (options.shouldStop?.()) break;
     const adapter = options.adapterFor(item.accountId);
     if (!adapter) continue; // account unavailable; leave its work queued
     try {

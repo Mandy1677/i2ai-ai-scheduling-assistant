@@ -39,6 +39,12 @@ export class WindowManager {
     if (win && !win.isDestroyed()) win.webContents.send('assistant:failures-changed');
   }
 
+  /** Tells the main window whether a sync run is active, so Sync now shows it is busy. */
+  notifySyncState(running: boolean): void {
+    const win = this.windows.get('main');
+    if (win && !win.isDestroyed()) win.webContents.send('assistant:sync-state-changed', running);
+  }
+
   private create(name: WindowName): BrowserWindow {
     const page = PAGES[name];
     const win = new BrowserWindow({

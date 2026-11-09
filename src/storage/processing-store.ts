@@ -121,6 +121,17 @@ export class ProcessingStore {
       .run(errorCode, retryAt, retryAt, now, id);
   }
 
+  /** Items whose last attempt failed, grouped by stage and safe error code. */
+  errorSummary(): { stage: string; errorCode: string; count: number }[] {
+    const rows = this.db
+      .prepare(
+        `SELECT stage, error_code, COUNT(*) AS n FROM processing_items
+         WHERE error_code IS NOT NULL GROUP BY stage, error_code ORDER BY stage, error_code`,
+      )
+      .all() as { stage: string; error_code: string; n: number }[];
+    return rows.map((row) => ({ stage: row.stage, errorCode: row.error_code, count: row.n }));
+  }
+
   countByStage(accountId?: string): Record<string, number> {
     const rows = (
       accountId
