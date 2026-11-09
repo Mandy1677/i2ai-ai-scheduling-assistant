@@ -10,8 +10,9 @@ export type EntryKind = 'appointment' | 'follow-up';
  * active: the App manages the entry.
  * resolved: a follow-up that is no longer needed and was removed.
  * removed-externally: the entry was deleted in Google Calendar; never recreate it.
+ * rescheduled: the event was moved by a confirmed reschedule, which now owns it.
  */
-export type EntryState = 'active' | 'resolved' | 'removed-externally';
+export type EntryState = 'active' | 'resolved' | 'removed-externally' | 'rescheduled';
 
 export interface CalendarAssociation {
   schedulingItemId: string;
@@ -23,6 +24,10 @@ export interface CalendarAssociation {
   state: EntryState;
   /** All-day date for follow-ups (YYYY-MM-DD). */
   eventDate: string | null;
+  /** The overlaps last marked on this appointment, or null when none are marked. */
+  conflictKey?: string | null;
+  /** An email change already reported as conflicting with a manual edit. */
+  flaggedFingerprint?: string | null;
 }
 
 interface Row {
@@ -34,6 +39,8 @@ interface Row {
   last_known_etag: string | null;
   state: EntryState;
   event_date: string | null;
+  conflict_key: string | null;
+  flagged_fingerprint: string | null;
 }
 
 export class CalendarStore {
@@ -53,6 +60,8 @@ export class CalendarStore {
           etag: row.last_known_etag,
           state: row.state,
           eventDate: row.event_date,
+          conflictKey: row.conflict_key,
+          flaggedFingerprint: row.flagged_fingerprint,
         }
       : null;
   }
@@ -61,12 +70,14 @@ export class CalendarStore {
     this.db
       .prepare(
         `INSERT INTO calendar_associations
-           (scheduling_item_id, calendar_id, event_id, kind, applied_fingerprint, last_known_etag, state, event_date, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+           (scheduling_item_id, calendar_id, event_id, kind, applied_fingerprint, last_known_etag, state, event_date,
+            conflict_key, flagged_fingerprint, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(scheduling_item_id) DO UPDATE SET
            calendar_id = excluded.calendar_id, event_id = excluded.event_id, kind = excluded.kind,
            applied_fingerprint = excluded.applied_fingerprint, last_known_etag = excluded.last_known_etag,
-           state = excluded.state, event_date = excluded.event_date, updated_at = excluded.updated_at`,
+           state = excluded.state, event_date = excluded.event_date, conflict_key = excluded.conflict_key,
+           flagged_fingerprint = excluded.flagged_fingerprint, updated_at = excluded.updated_at`,
       )
       .run(
         association.schedulingItemId,
@@ -77,6 +88,8 @@ export class CalendarStore {
         association.etag,
         association.state,
         association.eventDate,
+        association.conflictKey ?? null,
+        association.flaggedFingerprint ?? null,
         now,
       );
   }

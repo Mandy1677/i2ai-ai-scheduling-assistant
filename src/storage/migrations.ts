@@ -106,6 +106,11 @@ const MIGRATIONS: string[] = [
   ALTER TABLE calendar_associations ADD COLUMN event_date TEXT;
   CREATE INDEX calendar_associations_event ON calendar_associations (calendar_id, event_id);
   `,
+  // T015: applied conflict marking, and email changes already flagged against a manual edit.
+  `
+  ALTER TABLE calendar_associations ADD COLUMN conflict_key TEXT;
+  ALTER TABLE calendar_associations ADD COLUMN flagged_fingerprint TEXT;
+  `,
 ];
 
 export function migrate(db: DatabaseSync): void {

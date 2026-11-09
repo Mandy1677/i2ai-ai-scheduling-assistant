@@ -41,6 +41,8 @@ export interface SyncReport {
   failures: AppFailure[];
   /** Possible missed mail; these stay visible until the range is changed. */
   possibleGaps: AppFailure[];
+  /** Email changes that met an entry Monica edited; these stay until she opens the calendar. */
+  editNotices: AppFailure[];
   discovered: number;
   processed: number;
   calendar: ApplyResult | null;
@@ -129,6 +131,7 @@ export async function runSync(deps: SyncRunDeps): Promise<SyncReport> {
   const report: SyncReport = {
     failures: [],
     possibleGaps: [],
+    editNotices: [],
     discovered: 0,
     processed: 0,
     calendar: null,
@@ -214,6 +217,14 @@ export async function runSync(deps: SyncRunDeps): Promise<SyncReport> {
         id: 'calendar-sync',
         message: `Calendar access needs attention: ${report.calendar.failed} calendar ${report.calendar.failed === 1 ? 'entry' : 'entries'} could not be written.`,
         action: 'The App will try again in a few minutes. If this continues, reconnect Google Calendar in Settings.',
+      });
+    }
+    if (report.calendar && report.calendar.manualEditConflicts > 0) {
+      const n = report.calendar.manualEditConflicts;
+      report.editNotices.push({
+        id: 'calendar-manual-edits',
+        message: `A newer email changed ${n === 1 ? 'an entry' : `${n} entries`} you edited in Google Calendar. Your version was kept.`,
+        action: 'Open Google Calendar to check whether it still matches.',
       });
     }
   } catch {

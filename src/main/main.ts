@@ -116,6 +116,8 @@ function start(): void {
   let syncFailures: AppFailure[] = [];
   // Possible missed mail stays visible until Settings is saved again.
   const gapFailures = new Map<string, AppFailure>();
+  // Email changes kept back by a manual calendar edit stay until the calendar is opened.
+  const editNotices = new Map<string, AppFailure>();
 
   const configured = (): boolean => stores !== null && isConfigured(stores);
 
@@ -128,6 +130,7 @@ function start(): void {
       ...accountFailures,
       ...syncFailures,
       ...gapFailures.values(),
+      ...editNotices.values(),
     ]) {
       if (!byId.has(failure.id)) byId.set(failure.id, failure);
     }
@@ -194,6 +197,7 @@ function start(): void {
     if (report.stopped) return;
     syncFailures = report.failures;
     for (const gap of report.possibleGaps) gapFailures.set(gap.id, gap);
+    for (const notice of report.editNotices) editNotices.set(notice.id, notice);
     // Counts only; no message content is logged.
     console.info(
       `Sync finished: ${report.discovered} new, ${report.processed} processed, ${report.failures.length} problems`,
@@ -285,6 +289,8 @@ function start(): void {
     }
     try {
       await shell.openExternal(calendarViewUrl(connection.calendarId, connection.googleAccount));
+      editNotices.clear();
+      windows.refreshMain();
       return { status: 'opened' };
     } catch {
       return { status: 'failed' };

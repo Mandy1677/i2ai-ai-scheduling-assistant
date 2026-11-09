@@ -13,7 +13,7 @@ import { SchedulingStore } from '../storage/scheduling-store';
 import { SecretStore } from '../storage/secret-store';
 import { SettingKey, SettingsStore } from '../storage/settings-store';
 import { fakeEncryptor } from '../storage/test-helpers';
-import { applyToCalendar, dateInZone, restoreText } from './apply';
+import { applyToCalendar, dateInZone, formatTiming, restoreText, zonedToUtc } from './apply';
 import { CalendarClient, calendarViewUrl, ITEM_PROPERTY } from './calendar-client';
 import { CALENDAR_SCOPE, CalendarConnector } from './calendar-connector';
 
@@ -182,6 +182,202 @@ describe('confirmed appointments (T012)', () => {
     const result = await run();
     assert.equal(result.keptManualEdits, 1);
     assert.equal(result.updated, 0);
+    assert.equal(result.manualEditConflicts, 1, 'the newer email change is flagged');
+    const again = await run();
+    assert.equal(again.manualEditConflicts, 0, 'and flagged only once');
+  });
+});
+
+const at = (start: string, end: string, timeZone = 'America/New_York') => ({
+  ...CONFIRMED_TIMING,
+  start,
+  end,
+  timeZone,
+});
+const appointments = (api: FakeCalendarApi) => [...api.events.values()].filter((e) => e.body.start.dateTime);
+const followUps = (api: FakeCalendarApi) => [...api.events.values()].filter((e) => e.body.start.date);
+
+describe('rescheduling (T014)', () => {
+  test('an unconfirmed reschedule keeps the original and says so in its follow-up', async () => {
+    const { api, addItem, run } = setup();
+    addItem(baseAnalysis({ requestType: 'confirmed-appointment', timing: CONFIRMED_TIMING }), { thread: 't' });
+    await run();
+    addItem(baseAnalysis({ requestType: 'reschedule-request' }), { thread: 't', receivedAt: '2026-11-05T15:00:00.000Z' });
+    await run();
+    const [appointment] = appointments(api);
+    assert.equal(appointment.body.start.dateTime, '2026-11-12T14:00:00', 'the original time is unchanged');
+    const [followUp] = followUps(api);
+    assert.match(followUp.body.description, /Current appointment kept: 2026-11-12 14:00–14:50/);
+  });
+
+  test('a confirmed reschedule moves the original and resolves its follow-up', async () => {
+    const { api, addItem, run, associations } = setup();
+    const original = addItem(baseAnalysis({ requestType: 'confirmed-appointment', timing: CONFIRMED_TIMING }), { thread: 't' });
+    addItem(baseAnalysis({ requestType: 'reschedule-request' }), { thread: 't', receivedAt: '2026-11-05T15:00:00.000Z' });
+    await run();
+    assert.equal(followUps(api).length, 1);
+
+    addItem(
+      baseAnalysis({ requestType: 'confirmed-reschedule', timing: at('2026-11-13T15:00', '2026-11-13T15:50') }),
+      { thread: 't', receivedAt: '2026-11-06T15:00:00.000Z' },
+    );
+    const result = await run();
+    assert.equal(result.rescheduled, 1);
+    assert.equal(result.created, 0, 'no second appointment');
+    const [moved, ...others] = appointments(api);
+    assert.equal(others.length, 0);
+    assert.equal(moved.body.start.dateTime, '2026-11-13T15:00:00');
+    assert.equal(moved.body.end.dateTime, '2026-11-13T15:50:00');
+    assert.equal(followUps(api).length, 0, 'the reschedule follow-up is resolved');
+    assert.equal(associations.get(original)!.state, 'rescheduled');
+
+    const writes = api.writes.length;
+    const again = await run();
+    assert.equal(api.writes.length, writes, 'a repeat run changes nothing');
+    assert.equal(again.rescheduled, 0);
+  });
+
+  test('successive reschedules keep moving the same event', async () => {
+    const { api, addItem, run } = setup();
+    addItem(baseAnalysis({ requestType: 'confirmed-appointment', timing: CONFIRMED_TIMING }), { thread: 't' });
+    addItem(
+      baseAnalysis({ requestType: 'confirmed-reschedule', timing: at('2026-11-13T15:00', '2026-11-13T15:50') }),
+      { thread: 't', receivedAt: '2026-11-05T15:00:00.000Z' },
+    );
+    addItem(
+      baseAnalysis({ requestType: 'confirmed-reschedule', timing: at('2026-11-16T09:00', '2026-11-16T09:50') }),
+      { thread: 't', receivedAt: '2026-11-06T15:00:00.000Z' },
+    );
+    const result = await run();
+    assert.equal(result.rescheduled, 2);
+    const [event, ...others] = appointments(api);
+    assert.equal(others.length, 0);
+    assert.equal(event.body.start.dateTime, '2026-11-16T09:00:00');
+  });
+
+  test('more than one possible original changes nothing and asks for attention', async () => {
+    const { api, addItem, run } = setup();
+    addItem(baseAnalysis({ requestType: 'confirmed-appointment', timing: CONFIRMED_TIMING }), { thread: 't' });
+    addItem(baseAnalysis({ requestType: 'confirmed-appointment', timing: at('2026-11-14T10:00', '2026-11-14T10:50') }), {
+      thread: 't',
+      receivedAt: '2026-11-04T16:00:00.000Z',
+    });
+    await run();
+    const before = appointments(api).map((e) => e.body.start.dateTime).sort();
+
+    addItem(
+      baseAnalysis({ requestType: 'confirmed-reschedule', timing: at('2026-11-13T15:00', '2026-11-13T15:50') }),
+      { thread: 't', receivedAt: '2026-11-06T15:00:00.000Z' },
+    );
+    const result = await run();
+    assert.equal(result.rescheduleNeedsAttention, 1);
+    assert.deepEqual(appointments(api).map((e) => e.body.start.dateTime).sort(), before, 'no appointment moved or added');
+    const [reminder] = followUps(api);
+    assert.match(reminder.body.description, /could not safely tell which appointment to move/);
+    assert.equal(reminder.body.transparency, 'transparent');
+
+    const again = await run();
+    assert.equal(again.rescheduleNeedsAttention, 0, 'the same reminder is kept, not repeated');
+    assert.equal(followUps(api).length, 1);
+  });
+
+  test('an original Monica edited is not moved', async () => {
+    const { api, addItem, run } = setup();
+    addItem(baseAnalysis({ requestType: 'confirmed-appointment', timing: CONFIRMED_TIMING }), { thread: 't' });
+    await run();
+    const [original] = appointments(api);
+    api.editByUser(original.id);
+
+    addItem(
+      baseAnalysis({ requestType: 'confirmed-reschedule', timing: at('2026-11-13T15:00', '2026-11-13T15:50') }),
+      { thread: 't', receivedAt: '2026-11-06T15:00:00.000Z' },
+    );
+    const result = await run();
+    assert.equal(result.rescheduleNeedsAttention, 1);
+    assert.equal(original.body.start.dateTime, '2026-11-12T14:00:00');
+    assert.equal(appointments(api).length, 1);
+  });
+
+  test('a confirmed new time with no original in this calendar is written as agreed', async () => {
+    const { api, addItem, run } = setup();
+    addItem(baseAnalysis({ requestType: 'confirmed-reschedule', timing: at('2026-11-13T15:00', '2026-11-13T15:50') }));
+    const result = await run();
+    assert.equal(result.created, 1);
+    assert.equal(appointments(api)[0].body.start.dateTime, '2026-11-13T15:00:00');
+  });
+});
+
+describe('conflicts (T015)', () => {
+  test('overlapping appointments keep their times and are marked with each other’s priorities', async () => {
+    const { api, addItem, run } = setup();
+    addItem(baseAnalysis({ requestType: 'confirmed-appointment', category: 'patient', timing: CONFIRMED_TIMING }));
+    addItem(
+      baseAnalysis({
+        requestType: 'confirmed-appointment',
+        category: 'pennwest',
+        summary: 'Guest lecture with [PERSON_1].',
+        timing: at('2026-11-12T14:30', '2026-11-12T15:20'),
+      }),
+    );
+    const result = await run();
+    assert.equal(result.conflictsMarked, 2);
+    const byStart = Object.fromEntries(appointments(api).map((e) => [e.body.start.dateTime, e.body]));
+    const patient = byStart['2026-11-12T14:00:00'];
+    const lecture = byStart['2026-11-12T14:30:00'];
+    assert.ok(patient && lecture, 'both keep their agreed times');
+    assert.match(patient.summary, /^Conflict · P1 Patient/);
+    assert.match(patient.description, /overlaps with\n- P5 PennWest University: Guest lecture with Sam\. \(2026-11-12 14:30–15:20\)/);
+    assert.match(lecture.summary, /^Conflict · P5/);
+    assert.match(lecture.description, /- P1 Patient:/);
+
+    const writes = api.writes.length;
+    await run();
+    assert.equal(api.writes.length, writes, 'marking is not repeated');
+  });
+
+  test('back-to-back appointments are not conflicts; time zones are compared as real times', async () => {
+    const { api, addItem, run } = setup();
+    addItem(baseAnalysis({ requestType: 'confirmed-appointment', timing: CONFIRMED_TIMING }));
+    addItem(baseAnalysis({ requestType: 'confirmed-appointment', timing: at('2026-11-12T14:50', '2026-11-12T15:40') }));
+    let result = await run();
+    assert.equal(result.conflictsMarked, 0);
+
+    // 11:20 in Los Angeles is 14:20 in New York.
+    addItem(
+      baseAnalysis({ requestType: 'confirmed-appointment', timing: at('2026-11-12T11:20', '2026-11-12T11:40', 'America/Los_Angeles') }),
+    );
+    result = await run();
+    assert.equal(result.conflictsMarked, 2);
+    assert.equal(appointments(api).filter((e) => e.body.summary.startsWith('Conflict')).length, 2);
+  });
+
+  test('marking is cleared when a reschedule removes the overlap', async () => {
+    const { api, addItem, run } = setup();
+    addItem(baseAnalysis({ requestType: 'confirmed-appointment', timing: CONFIRMED_TIMING }), { thread: 'a' });
+    addItem(baseAnalysis({ requestType: 'confirmed-appointment', timing: at('2026-11-12T14:30', '2026-11-12T15:20') }), {
+      thread: 'b',
+    });
+    await run();
+    addItem(
+      baseAnalysis({ requestType: 'confirmed-reschedule', timing: at('2026-11-12T16:00', '2026-11-12T16:50') }),
+      { thread: 'b', receivedAt: '2026-11-06T15:00:00.000Z' },
+    );
+    const result = await run();
+    assert.equal(result.rescheduled, 1);
+    assert.equal(result.conflictsCleared, 1);
+    assert.equal(appointments(api).filter((e) => e.body.summary.startsWith('Conflict')).length, 0);
+  });
+
+  test('an appointment Monica edited is not re-marked', async () => {
+    const { api, addItem, run } = setup();
+    addItem(baseAnalysis({ requestType: 'confirmed-appointment', timing: CONFIRMED_TIMING }));
+    await run();
+    const [mine] = appointments(api);
+    api.editByUser(mine.id);
+    addItem(baseAnalysis({ requestType: 'confirmed-appointment', timing: at('2026-11-12T14:30', '2026-11-12T15:20') }));
+    const result = await run();
+    assert.equal(result.conflictsMarked, 1, 'only the new appointment is marked');
+    assert.ok(!mine.body.summary.startsWith('Conflict'));
   });
 });
 
@@ -272,6 +468,13 @@ describe('calendar helpers', () => {
       restoreText('[PERSON_1] and [THRIVEWORKS_PR_CONTACT] asked [CLINICIAN]; [EDUCATIONAL_SENDER] too.', { '[PERSON_1]': 'Sam' }),
       'Sam and Jennifer (Thriveworks PR) asked you; educational sender too.',
     );
+  });
+
+  test('local times convert to real instants across daylight-saving changes', () => {
+    assert.equal(new Date(zonedToUtc('2026-11-12T14:00', 'America/New_York')).toISOString(), '2026-11-12T19:00:00.000Z');
+    assert.equal(new Date(zonedToUtc('2026-07-12T14:00', 'America/New_York')).toISOString(), '2026-07-12T18:00:00.000Z');
+    assert.equal(new Date(zonedToUtc('2026-11-01T01:30', 'America/New_York')).getUTCHours() % 24 >= 5, true);
+    assert.equal(formatTiming({ start: '2026-11-12T14:00', end: '2026-11-12T14:50' }), '2026-11-12 14:00–14:50');
   });
 
   test('dates follow the calendar time zone', () => {

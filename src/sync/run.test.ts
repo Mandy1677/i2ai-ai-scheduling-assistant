@@ -83,7 +83,12 @@ const applied = (overrides: Partial<ApplyResult> = {}): ApplyResult => ({
   resolved: 0,
   linkedDuplicates: 0,
   keptManualEdits: 0,
+  manualEditConflicts: 0,
   removedExternally: 0,
+  rescheduled: 0,
+  rescheduleNeedsAttention: 0,
+  conflictsMarked: 0,
+  conflictsCleared: 0,
   skipped: 0,
   failed: 0,
   ...overrides,
@@ -275,6 +280,12 @@ describe('sync run', () => {
     t.setCalendar(async () => applied({ failed: 2 }));
     report = await runSync(t.deps());
     assert.match(report.failures[0].message, /2 calendar entries could not be written/);
+
+    t.setCalendar(async () => applied({ manualEditConflicts: 1 }));
+    report = await runSync(t.deps());
+    assert.deepEqual(ids(report.failures), []);
+    assert.deepEqual(ids(report.editNotices), ['calendar-manual-edits']);
+    assert.match(report.editNotices[0].message, /changed an entry you edited/);
 
     t.setCalendar(async () => {
       throw new Error('offline');
